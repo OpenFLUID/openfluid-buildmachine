@@ -20,6 +20,7 @@ setup(name = 'openfluid-buildmachine',
               'ofbm = ofbm.__main__:main'
           ]
       },
+      test_suite='tests',
       install_requires = [
         'argparse'
       ]
