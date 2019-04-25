@@ -1,4 +1,5 @@
 #! /usr/bin/env python3
+#-*-coding:utf-8-*-
 
 from setuptools import setup
 
@@ -10,8 +11,8 @@ setup(name = 'openfluid-buildmachine',
       version = '0.0.1',
       description = 'Tool for automatically build, test and package the OpenFLUID modelling platform',
       long_description = readme(),
-      author = 'Jean-Christophe Fabre',
-      author_email = 'jean-christophe.fabre@inra.fr',
+      author = 'Jean-Christophe Fabre, Armel Thöni', 
+      author_email = 'jean-christophe.fabre@inra.fr, armel.thoni@inra.fr',
       url = 'http://github.com/OpenFLUID/openfluid-buildmachine',
       license = 'GPLv3',
       packages = ['ofbm'],
