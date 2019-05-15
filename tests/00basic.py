@@ -38,7 +38,9 @@ class MainTest(unittest.TestCase):
       with self.assertRaises(InputException):
         BM = BuildMachine(Args)
   
+  
   ####################################################
+  
   
   def test_gitBadSetup(self):
     Args = {"temp_dir":"/tmp/openfluid-build-machine", "build_jobs":1, "openfluid_repos":"OpenFLU/openflu:mast"}
@@ -46,22 +48,12 @@ class MainTest(unittest.TestCase):
     #with self.assertRaises(GitException):
     BM.setupRepos()
     BM.summaryGeneration()
-    
-  ####################################################
-  """
-  def test_localSetup(self):
-    # requires test00 clone step
-    # Hard to test from real local: can't define location generically since depending on system...
-    
-    LocalTmpPath = "/tmp/openfluid-build-machine/openfluid-src"
-    self.assertTrue(os.path.exists(LocalTmpPath)) #not a real test, more a config check before running the effective test. Still assert?
-    Args = {"temp_dir":"/tmp/openfluid-build-machine", "build_jobs":1, "openfluid_repos":LocalTmpPath}
-    BM = BuildMachine(Args)
-  """
+
   
   ####################################################
   
-  def test_config(self):
+  
+  def _test_config(self):
     # requires test00 clone step
     LocalTmpPath = "/tmp/openfluid-build-machine/openfluid-src"
     #self.assertTrue(os.path.exists(LocalTmpPath))
@@ -73,22 +65,31 @@ class MainTest(unittest.TestCase):
     #BM.buildOpenFLUID()
     BM.testOpenFLUID()
   
+  
   ####################################################
  
+ 
   def test_testBuild_fromGit(self):
+ 
     Args = {"temp_dir":"/tmp/openfluid-build-machine", "build_jobs":10, "which":"test", "openfluid_repos":"OpenFLUID/openfluid"}
     BM = BuildMachine(Args)
+ 
     
   ####################################################
+ 
   
-  def test_packageBuild_fromLocal(self):
+  def _test_packageBuild_fromLocal(self):
+ 
     LocalTmpPath = "/tmp/openfluid-build-machine/openfluid-src"
     Args = {"temp_dir":"/tmp/openfluid-build-machine", "build_jobs":10, "which":"package", "openfluid_repos":LocalTmpPath}
     BM = BuildMachine(Args)
+ 
     
   ####################################################
+ 
   
-  def test_installCheckExamples_fromLocal(self):
+  def _test_installCheckExamples_fromLocal(self):
+ 
     LocalTmpPath = "/tmp/openfluid-build-machine/openfluid-src"
     Args = dict(self.BasicArgs)
     Args["build_jobs"] = 10
@@ -108,9 +109,13 @@ class MainTest(unittest.TestCase):
       
     #BM.checkExamplesOpenFLUID()
     BM.summaryGeneration()
+ 
+ 
+  ####################################################   
+  
     
-    
-  def test_partial_gitRopenfluid(self):
+  def _test_partial_gitRopenfluid(self):
+
     Args = {"temp_dir":"/tmp/openfluid-build-machine", "build_jobs":1, "openfluid_repos":"OpenFLUID/openfluid:master",
             "ropenfluid_repos":"OpenFLUID/ropenfluid:master", "shell":True}
     BM = BuildMachine(Args, AutoTrigger=False)
@@ -119,9 +124,12 @@ class MainTest(unittest.TestCase):
     BM.checkROpenFLUID()
     BM.buildROpenFLUID()
     BM.summaryGeneration(InShell=True)
-    
+
+
+  ####################################################    
  
-  def test_partial_gitPyopenfluid(self):
+ 
+  def _test_partial_gitPyopenfluid(self):
     Args = {"temp_dir":"/tmp/openfluid-build-machine", "build_jobs":10, "openfluid_repos":"OpenFLUID/openfluid:master",
             "pyopenfluid_repos":"default", "shell":True}#OpenFLUID/pyopenfluid:develop
     BM = BuildMachine(Args, AutoTrigger=False)
@@ -130,8 +138,13 @@ class MainTest(unittest.TestCase):
     BM.checkPyOpenFLUID()
     BM.buildPyOpenFLUID()
     BM.summaryGeneration(InShell=True)
-    
+ 
+ 
+  ####################################################   
+
+
   def test_parser(self):
+
     Parser = BuildmachineParser()
     #input = 'package --pyopenfluid-repos="default"'
     input = 'package --pyopenfluid-repos=default'
@@ -139,14 +152,23 @@ class MainTest(unittest.TestCase):
     print("Args:")
     print(Args)
     #BM = BuildMachine(Args, AutoTrigger=False)
-    
+  
+  ####################################################    
+  
+  
   def test_fullPackage_viaParser(self):
+
     Parser = BuildmachineParser()
     input = '--build-jobs=9 package --pyopenfluid-repos=default --ropenfluid-repos=default'
     Args = vars(Parser.parse_args(input.split()))
     BM = BuildMachine(Args)
     
-  def test_gitPyopenfluid_viaParser(self):
+  
+  ####################################################
+  
+  
+  def _test_gitPyopenfluid_viaParser(self):
+
     Parser = BuildmachineParser()
     #input = '--shell --build-jobs=9 package --pyopenfluid-repos="default"'
     input = '--build-jobs=9 package --pyopenfluid-repos=default'
@@ -161,7 +183,12 @@ class MainTest(unittest.TestCase):
     BM.summaryGeneration()
     BM.summaryGeneration(InShell=True)
     
-  def test_gitRopenfluid_viaParser(self):
+  
+  ####################################################
+  
+  
+  def _test_gitRopenfluid_viaParser(self):
+    
     Parser = BuildmachineParser()
     #input = '--shell --build-jobs=9 package --pyopenfluid-repos="default"'
     input = '--build-jobs=9 package --ropenfluid-repos=default'
