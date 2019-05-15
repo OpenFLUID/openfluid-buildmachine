@@ -12,11 +12,12 @@ import os
 from os.path import expanduser
 import subprocess
 import shutil
-import datetime
 import time
 import platform
 import json
 
+from .utils import addToLogFile, currentTimestamp, envInfos, printStage, procedureSummary, resetDirectory
+from .BuildmachineObjects import GitException, InputException, ProcedureException, LocalCodebaseRepos, GitRepos
 
 # Success check when can not be found through return code
 
@@ -28,193 +29,6 @@ DefaultRepos = dict()  # possibility to set DefaultRepos["foo"] = [urlPortion, B
 DefaultRepos["ropenfluid_repos"] = ["OpenFLUID/ropenfluid"]
 DefaultRepos["pyopenfluid_repos"] = ["OpenFLUID/pyopenfluid"]
 
-############################################################################
-############################################################################
-
-class InputException(Exception):
-    def __init__(self,*args,**kwargs):
-        Exception.__init__(self,*args,**kwargs)
-
-############################################################################
-
-class GitException(Exception):
-    def __init__(self,*args,**kwargs):
-        Exception.__init__(self,*args,**kwargs)
-
-############################################################################
-
-class ProcedureException(Exception):
-    def __init__(self,*args,**kwargs):
-        Exception.__init__(self,*args,**kwargs)
-
-############################################################################
-############################################################################
-
-
-class LocalCodebaseRepos :
-    
-  def __init__(self, path, origin="Local"):
-        
-    self.Origin = origin  # "GitHub" or "Local"
-    self.LocalPath = path
-  
-  def __str__(self):
-    info = "Origin: %s\nLocal path: %s"%(self.Origin, self.LocalPath)
-    return info
-      
-
-############################################################################
-
-
-class GitRepos(LocalCodebaseRepos) :
-    
-  def __init__(self, urlPortion, path, branch=None):
-    
-    LocalCodebaseRepos.__init__(self, path, origin="GitHub")
-    self.GitRepos = urlPortion
-    self.Branch = branch
-  
-  def __str__(self):
-    info = "Github Repo: %s"%self.GitRepos
-    if self.Branch is not None:
-      info += "\nGithub Branch: %s"%self.Branch
-    return LocalCodebaseRepos.__str__(self)+"\n"+info
-    
-
-############################################################################
-############################################################################
-
-def currentTimestamp():
-
-  return str(datetime.datetime.now()).split(".")[0]
-
-##############################################################
-
-def envInfos():
-    
-  EnvInfos = dict()
-  
-  f = open("/etc/os-release", "r")
-  fl = f.readlines()
-  f.close()
-  for l in fl:
-    lst = l.rstrip()
-    if "ID" == l.split("=")[0]:
-      EnvInfos["distrib"] = lst.split("=")[1]
-    elif "VERSION_ID" == l.split("=")[0]:
-      EnvInfos["version"] = lst.split("=")[1]
-      if '"' in EnvInfos["version"]:
-          EnvInfos["version"] = EnvInfos["version"][1:-1]
-          
-  #EnvInfos["proc"] = platform.machine() #not even necessary
-  
-  return EnvInfos
-
-##############################################################
-
-def resetDirectory(Path, Purge=False):
-  
-  NeedCreation = True
-  
-  if os.path.isdir(Path):
-    if Purge:
-      shutil.rmtree(Path)
-    else:
-      NeedCreation = False
-  
-  if NeedCreation:
-    os.makedirs(Path)
-    print("Made PATH %s"%Path)
-  
-
-###################################
-
-
-def addToLogFile(StepFile, Content, TS=0):
-  
-  try:
-    f = open(StepFile, "a+")
-  except:
-    print("Can't open log file %s"%StepFile)
-    return 1
-  if TS == 0:
-    TS = currentTimestamp()
-  f.write("%s\t%s\n"%(TS, Content))
-  f.close()
-
-############################################################################
-
-def procedureSummary(StatusTable, OutputDir=".", LogDir="", Metadata={}):
-  
-  """Generates a synthesis of steps and write it in json in a file"""
-  
-  Steps = list(StatusTable.keys())
-  Steps.sort()
-  
-  if OutputDir is None or OutputDir == "":
-    
-    print("\n** Build-machine summary **")  
-    for Step in Steps:
-      Tag, StepName = Step.split("_")
-      Prefix = ""
-      if len(Tag) > 1:
-        Prefix = Tag[0]+"-"
-      else:
-        Prefix = "OF-"
-      print("%s%s\t%r"%(Prefix, StepName, StatusTable[Step]))
-    print("-"*10)
-  
-  else:
-    ### Json generation
-    print("\nGenerates Build-machine summary...")
-    Procedure = {}
-    if Metadata != {}:
-      Procedure["metadata"] = Metadata
-    Procedure["steps"] = []
-    for Step in Steps:
-      Number, Name = Step.split("_")
-      Procedure["steps"].append({
-        "number":Number,
-        "name":Name,
-        "success":StatusTable[Step]["ReturnCode"],
-        "duration":StatusTable[Step]["Duration"]
-      })
-  
-    ReportName = 'report.json'
-    JsonFile = os.path.join(OutputDir, ReportName)
-    with open(JsonFile, 'w') as Outfile:  
-      json.dump(Procedure, Outfile)
-    
-    print("%s generated."%ReportName)
-    
-    ### Generates html
-    HtmlContent = "<table>\n"
-    HtmlContent += "  <tr><td>Step</td><td>Duration (s)</td><td>Success</td><td>Log file</td></tr>\n"
-    for Step in Steps:
-      LogPath = os.path.join(LogDir, "%s.txt"%Step)
-      HtmlContent += "  <tr>\n"
-      Tag, StepName = Step.split("_")
-      Prefix = ""
-      if len(Tag) > 1:
-        Prefix = Tag[0]+"-"
-      else:
-        Prefix = "OF-"
-       
-      if StatusTable[Step]["ReturnCode"]:  # when success
-        SuccessHtml = "OK"
-        Color = "blue"
-      else:
-        SuccessHtml = "KO"
-        Color = "Red"
-      
-      HtmlContent += "\t<td>%s%s</td>\n\t<td>%.3f</td>\n\t<td style='color:%s;'>%s</td>\n\t<td><a href='%s'>log</a></td>\n"%(Prefix, StepName, StatusTable[Step]["Duration"], Color, SuccessHtml, LogPath)
-      HtmlContent += "  </tr>\n"
-    HtmlContent += "</table>\n"
-    HtmlPath = os.path.join(OutputDir, "report.html")
-    f = open(HtmlPath, "w") #TODO change location (or duplicate)
-    f.write(HtmlContent)
-    f.close()
-    print("file://%s written."%HtmlPath)
 
 ############################################################################
 ############################################################################
@@ -253,12 +67,11 @@ class BuildMachine :
     # STATUS Check
     self.StatusTable = {}
     
-    # run prebuild actions
-    
-    #del args["which"]
+    # Constant commands
     self.ROpenFLUIDCMakeCommands = dict()
     self.ROpenFLUIDCMakeCommands["check"] = ["cmake","-P","check.cmake"]
     self.ROpenFLUIDCMakeCommands["build"] = ["cmake","-P","build.cmake"]
+    
     self.processCommonOptions(args)
     self.findEnvOptions()
     
@@ -266,7 +79,9 @@ class BuildMachine :
     if self.BuildType is not None and AutoTrigger:
         self.triggerProcedure()
   
+  
   ########################################
+  
   
   def triggerProcedure(self):
     
@@ -307,23 +122,17 @@ class BuildMachine :
     self.summaryGeneration()
     self.summaryGeneration(InShell=True)
       
-  ########################################
-  
-  def printStage(self, Text):
 
-    print("################################################################")
-    print(" "+Text)
-    print("################################################################")
-    
-    return "# "+Text
-  
   ########################################
   
+
   def getLogFileName(self, Step):
       return os.path.join(self.LogPath, "%s.txt"%Step)
+
   
   ########################################
   
+
   def logCommand(self, Step, Command, Title="", CommandCwd=''):
     
     InitTime = time.time()
@@ -333,7 +142,7 @@ class BuildMachine :
     FilePath = self.getLogFileName(Step)
     
     if Title != "":
-      LogHeader = self.printStage(Title)
+      LogHeader = printStage(Title)
       addToLogFile(FilePath, LogHeader)
 
     # check if CommandCwd exists
@@ -363,15 +172,19 @@ class BuildMachine :
     print("Returncode %s %d\n"%(Step, P.returncode))
     return P.returncode, round(time.time() - InitTime, 3)
   
+  
   ########################################
-    
+  
+  
   def logCommandAndCheck(self, Step, Command, Header, CommandCwd=''):
     
     ReturnCode, Seconds = self.logCommand(Step, Command, Header, CommandCwd=CommandCwd)
     self.checkStepSuccess(Step, ReturnCode, Seconds)
     return ReturnCode
   
+  
   ########################################
+  
   
   def processCommonOptions(self, Options):
     
@@ -435,6 +248,7 @@ class BuildMachine :
   
   #####################################
   
+  
   def processBuildOptions(self):
     
     self.OpenFLUIDCMakeCommands["build"] = ["cmake","--build",self.OpenFLUIDBuildPath]
@@ -451,6 +265,7 @@ class BuildMachine :
 
   
   ######################################
+  
   
   def findEnvOptions(self):
     """check what linux is run to set several specific parameters"""
@@ -476,7 +291,9 @@ class BuildMachine :
       if self.BuildType == "package":
         self.OpenFLUIDCMakeCommands["configure"].append("-DCMAKE_INSTALL_PREFIX=/usr")
   
+  
   ########################################
+  
   
   def setupRepos(self, TriggerClone=True):
       
@@ -488,8 +305,10 @@ class BuildMachine :
     if self.AllCodebaseRepos["openfluid_repos"].Origin == "GitHub" and TriggerClone:
       self.cloneOpenFLUID()
   
+  
   #######################################
     
+  
   def setupChildRepos(self, Repo):
     
     self.ReposIndex = dict()
@@ -502,7 +321,9 @@ class BuildMachine :
     
     # TODO check that folder really exists (especially when not in clone case)
     
+  
   #######################################
+  
   
   def cloneProcedure(self, Step, RepoKey):
     
@@ -526,19 +347,24 @@ class BuildMachine :
     
   #######################################
   
+  
   def cloneOpenFLUID(self):
     
     Step = "1_Fetch"
     self.cloneProcedure(Step, RepoKey="openfluid")
   
+  
   ########################################
+  
   
   def cloneROpenFLUID(self):
 
     Step = "R1_Fetch"
     self.cloneProcedure(Step, RepoKey="ropenfluid")
   
+  
   ########################################
+  
   
   def configureOpenFLUID(self):
     
@@ -548,7 +374,9 @@ class BuildMachine :
     Header = "Configuring OpenFLUID for %s build"%self.BuildType
     self.logCommandAndCheck(Step, Command, Header)
   
+  
   ########################################
+  
   
   def buildOpenFLUID(self):
     
@@ -557,7 +385,9 @@ class BuildMachine :
     Header = "Building OpenFLUID"
     self.logCommandAndCheck(Step, Command, Header)
   
+  
   ########################################
+  
   
   def packageOpenFLUID(self):
     
@@ -575,6 +405,7 @@ class BuildMachine :
     
     
   ########################################
+  
   
   def installOpenFLUID(self):
     
@@ -599,12 +430,15 @@ class BuildMachine :
   
   ########################################
   
+  
   def checkExamplesOpenFLUID(self):
     
     for Example in  self.ExamplesCheck:
       self.triggerExamplesOpenFLUID(Example)
   
+  
   ########################################
+  
   
   def triggerExamplesOpenFLUID(self, Example):
     
@@ -613,7 +447,9 @@ class BuildMachine :
     Command = ["openfluid", "run", os.path.join(self.HomePath, "examples", "projects", Example, "IN")]
     self.logCommandAndCheck(Step, Command, Header)
     
+  
   ########################################
+  
   
   def testOpenFLUID(self):
     
@@ -621,8 +457,10 @@ class BuildMachine :
     Command = self.OpenFLUIDCMakeCommands["test"]
     Header = "Running OpenFLUID tests"
     self.logCommandAndCheck(Step, Command, Header)
-    
+  
+  
   ########################################
+  
   
   def checkROpenFLUID(self):
     
@@ -630,17 +468,21 @@ class BuildMachine :
     Command = self.ROpenFLUIDCMakeCommands["check"]
     Header = "Checking ROpenFLUID"
     self.logCommandAndCheck(Step, Command, Header, CommandCwd=self.AllCodebaseRepos["ropenfluid_repos"].LocalPath)
-    
+  
+  
   ########################################
-    
+  
+  
   def buildROpenFLUID(self):
     
     Step = "R3_Build"
     Command = self.ROpenFLUIDCMakeCommands["build"]
     Header = "Building ROpenFLUID"
     self.logCommandAndCheck(Step, Command, Header, CommandCwd=self.AllCodebaseRepos["ropenfluid_repos"].LocalPath)
-     
+  
+  
   ########################################
+  
   
   def checkPyOpenFLUID(self):
     
@@ -649,7 +491,9 @@ class BuildMachine :
     Header = "Checking PyOpenFLUID"
     self.logCommandAndCheck(Step, Command, Header, CommandCwd=self.AllCodebaseRepos["pyopenfluid_repos"].LocalPath)
   
+  
   ########################################
+  
   
   def buildPyOpenFLUID(self):
     
@@ -658,7 +502,9 @@ class BuildMachine :
     Header = "Building PyOpenFLUID"
     self.logCommandAndCheck(Step, Command, Header, CommandCwd=self.AllCodebaseRepos["pyopenfluid_repos"].LocalPath)
   
+  
   ########################################
+  
   
   def testPyOpenFLUID(self):
       
@@ -667,7 +513,9 @@ class BuildMachine :
     Header = "Testing PyOpenFLUID"
     self.logCommandAndCheck(Step, Command, Header, CommandCwd=self.AllCodebaseRepos["pyopenfluid_repos"].LocalPath)
   
+  
   ########################################
+  
   
   def packagePyOpenFLUID(self):
     
@@ -676,7 +524,9 @@ class BuildMachine :
     Header = "Packaging PyOpenFLUID"
     self.logCommandAndCheck(Step, Command, Header, CommandCwd=self.AllCodebaseRepos["pyopenfluid_repos"].LocalPath)
   
+  
   ########################################
+  
   
   def checkStepSuccess(self, Step, ReturnCode, Seconds):  # TODO need test on this part to check if bad steps are detected
 
@@ -693,7 +543,9 @@ class BuildMachine :
     self.StatusTable[Step] = {"ReturnCode":IsSuccess, "Duration":Seconds}
     return IsSuccess
   
+  
   ########################################
+  
   
   def summaryGeneration(self, InShell=False):
     Metadata = dict()
