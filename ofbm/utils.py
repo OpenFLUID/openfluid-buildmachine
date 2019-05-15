@@ -9,11 +9,16 @@ __email__ = "armel.thoni@inra.fr"
 
 import datetime
 import os
+import json
+import shutil
 
 
-def currentTimestamp():
-
-  return str(datetime.datetime.now()).split(".")[0]
+def currentTimestamp(noSpace=False):
+  TS = str(datetime.datetime.now()).split(".")[0]
+  if noSpace:
+    return TS.replace(" ","_").replace(":","-")
+  else:
+    return TS
 
 
 ############################################################################
@@ -33,7 +38,7 @@ def envInfos():
     elif "VERSION_ID" == l.split("=")[0]:
       EnvInfos["version"] = lst.split("=")[1]
       if '"' in EnvInfos["version"]:
-          EnvInfos["version"] = EnvInfos["version"][1:-1]
+        EnvInfos["version"] = EnvInfos["version"][1:-1]
           
   #EnvInfos["proc"] = platform.machine() #not even necessary
   
@@ -87,6 +92,14 @@ def addToLogFile(StepFile, Content, TS=0):
   f.close()
 
 
+############################################################################
+
+
+def findSubdirs(path):
+  return [name for name in os.listdir(path)
+            if os.path.isdir(os.path.join(path, name))]
+  
+  
 ############################################################################
 
 

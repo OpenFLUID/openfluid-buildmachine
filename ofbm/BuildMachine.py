@@ -14,9 +14,8 @@ import subprocess
 import shutil
 import time
 import platform
-import json
 
-from .utils import addToLogFile, currentTimestamp, envInfos, printStage, procedureSummary, resetDirectory
+from .utils import addToLogFile, currentTimestamp, envInfos, findSubdirs, printStage, procedureSummary, resetDirectory
 from .BuildmachineObjects import GitException, InputException, ProcedureException, LocalCodebaseRepos, GitRepos
 
 # Success check when can not be found through return code
@@ -51,7 +50,8 @@ class BuildMachine :
     self.SrcSubDirs["ropenfluid"] = 'ropenfluid-src'
     self.SrcSubDirs["pyopenfluid"] = 'pyopenfluid-src'
     ## MACHINE LOGS
-    self.LogSubdir = '_log_%s'%str(time.time()).split(".")[0]
+    
+    self.LogSubdir = 'buildmachine-logs'
     
     # PARAMETERS
     self.BuildType = None
@@ -221,7 +221,7 @@ class BuildMachine :
           if Options[Repo] == "default":
             RepoInfos = DefaultRepos[Repo]
           else:
-            RepoInfos = Options[Repo].split(":")
+            RepoInfos = Options[Repo].split("#")
           if len(RepoInfos) in [1,2]:
             Branch = None
             if len(RepoInfos) == 2:
@@ -433,7 +433,11 @@ class BuildMachine :
   
   def checkExamplesOpenFLUID(self):
     
-    for Example in  self.ExamplesCheck:
+    self.ExamplesPath = os.path.join(self.OpenFLUIDBuildPath, "dist", "share", "doc", "openfluid", "examples", "projects")
+    WantedExamples = self.ExamplesCheck
+    if WantedExamples == ["*"]:
+      WantedExamples = findSubdirs(self.ExamplesPath)  # takes all examples subdirs
+    for Example in WantedExamples:
       self.triggerExamplesOpenFLUID(Example)
   
   
@@ -444,7 +448,7 @@ class BuildMachine :
     
     Step = "6_Example"
     Header = "Launching OpenFLUID example *%s*"%Example
-    Command = ["openfluid", "run", os.path.join(self.HomePath, "examples", "projects", Example, "IN")]
+    Command = ["openfluid", "run", os.path.join(self.ExamplesPath, Example, "IN")]
     self.logCommandAndCheck(Step, Command, Header)
     
   
@@ -533,7 +537,9 @@ class BuildMachine :
     IsSuccess = False
     if Step in StepSuccessStrings:
       FilePath = self.getLogFileName(Step)
-      IsSuccess = StepSuccessStrings[Step] in open(FilePath).read()
+      FileObject = open(FilePath)
+      IsSuccess = StepSuccessStrings[Step] in FileObject.read()
+      FileObject.close()
     elif ReturnCode == 0:
       IsSuccess = True
     

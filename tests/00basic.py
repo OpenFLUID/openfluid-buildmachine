@@ -24,7 +24,7 @@ class MainTest(unittest.TestCase):
   
 
   def test_gitSetup(self):
-    Args = {"temp_dir":"/tmp/openfluid-build-machine", "build_jobs":1, "openfluid_repos":"OpenFLUID/openfluid:master"}
+    Args = {"temp_dir":"/tmp/openfluid-build-machine", "build_jobs":1, "openfluid_repos":"OpenFLUID/openfluid#master"}
     BM = BuildMachine(Args)
     BM.setupRepos()
     BM.summaryGeneration()
@@ -116,8 +116,8 @@ class MainTest(unittest.TestCase):
     
   def _test_partial_gitRopenfluid(self):
 
-    Args = {"temp_dir":"/tmp/openfluid-build-machine", "build_jobs":1, "openfluid_repos":"OpenFLUID/openfluid:master",
-            "ropenfluid_repos":"OpenFLUID/ropenfluid:master", "shell":True}
+    Args = {"temp_dir":"/tmp/openfluid-build-machine", "build_jobs":1, "openfluid_repos":"OpenFLUID/openfluid#master",
+            "ropenfluid_repos":"OpenFLUID/ropenfluid#master", "shell":True}
     BM = BuildMachine(Args, AutoTrigger=False)
     BM.setupRepos(TriggerClone=False)
     BM.setupChildRepos("ropenfluid_repos")
@@ -130,8 +130,8 @@ class MainTest(unittest.TestCase):
  
  
   def _test_partial_gitPyopenfluid(self):
-    Args = {"temp_dir":"/tmp/openfluid-build-machine", "build_jobs":10, "openfluid_repos":"OpenFLUID/openfluid:master",
-            "pyopenfluid_repos":"default", "shell":True}#OpenFLUID/pyopenfluid:develop
+    Args = {"temp_dir":"/tmp/openfluid-build-machine", "build_jobs":10, "openfluid_repos":"OpenFLUID/openfluid#master",
+            "pyopenfluid_repos":"default", "shell":True}#OpenFLUID/pyopenfluid#develop
     BM = BuildMachine(Args, AutoTrigger=False)
     BM.setupRepos(TriggerClone=False)
     BM.setupChildRepos("pyopenfluid_repos")
@@ -203,6 +203,15 @@ class MainTest(unittest.TestCase):
     
   # need cleanup for real tests without side effects
   
+  ####################################################
+  
+  
+  def _test_examples_viaParser(self):
+
+    Parser = BuildmachineParser()
+    input = '--build-jobs=9 package --examples=Firespread'
+    Args = vars(Parser.parse_args(input.split()))
+    BM = BuildMachine(Args)
 
 
 ######################################################
