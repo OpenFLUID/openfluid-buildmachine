@@ -16,7 +16,7 @@ import time
 import platform
 
 from .utils import addToLogFile, currentTimestamp, envInfos, findSubdirs, printStage, procedureSummary, resetDirectory
-from .BuildmachineObjects import GitException, InputException, ProcedureException, LocalCodebaseRepos, GitRepos
+from .BuildMachineObjects import GitException, InputException, ProcedureException, LocalCodebaseRepos, GitRepos
 
 # Success check when can not be found through return code
 
@@ -120,7 +120,6 @@ class BuildMachine :
       self.testOpenFLUID()
     
     self.summaryGeneration()
-    self.summaryGeneration(InShell=True)
       
 
   ########################################
@@ -203,11 +202,6 @@ class BuildMachine :
       self.LogPath = os.path.join(self.BaseTempPath, self.LogSubdir)
     else:
       raise InputException("ERROR: Can't work without temp_dir information")
-
-    if 'home_dir' in Options and not Options['home_dir'] is None:
-      self.HomePath = Options['home_dir']
-    else:
-      self.HomePath = os.path.join(expanduser("~"),".openfluid")
 
     for Repo in self.AllRepos: #openfluid_repos, ropenfluid_repos, pyopenfluid_repos
       RepoName = Repo.split("_")[0]
@@ -433,7 +427,7 @@ class BuildMachine :
   
   def checkExamplesOpenFLUID(self):
     
-    self.ExamplesPath = os.path.join(self.OpenFLUIDBuildPath, "dist", "share", "doc", "openfluid", "examples", "projects")
+    self.ExamplesPath = os.path.join(self.AllCodebaseRepos["openfluid_repos"].LocalPath, "examples", "projects")
     WantedExamples = self.ExamplesCheck
     if WantedExamples == ["*"]:
       WantedExamples = findSubdirs(self.ExamplesPath)  # takes all examples subdirs
@@ -532,7 +526,7 @@ class BuildMachine :
   ########################################
   
   
-  def checkStepSuccess(self, Step, ReturnCode, Seconds):  # TODO need test on this part to check if bad steps are detected
+  def checkStepSuccess(self, Step, ReturnCode, Seconds):
 
     IsSuccess = False
     if Step in StepSuccessStrings:

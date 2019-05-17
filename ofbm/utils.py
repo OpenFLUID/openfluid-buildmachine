@@ -143,7 +143,7 @@ def procedureSummary(StatusTable, OutputDir=".", LogDir="", Metadata={}):
     ReportName = 'report.json'
     JsonFile = os.path.join(OutputDir, ReportName)
     with open(JsonFile, 'w') as Outfile:  
-      json.dump(Procedure, Outfile)
+      Outfile.write(json.dumps(Procedure, indent=4))
     
     print("%s generated."%ReportName)
     

@@ -8,7 +8,7 @@ __email__ = "jean-christophe.fabre@inra.fr"
 
 
 from .BuildMachine import BuildMachine
-from .BuildmachineParser import BuildmachineParser
+from .BuildMachineParser import BuildMachineParser
 
 ######################################################
 ######################################################
@@ -16,7 +16,7 @@ from .BuildmachineParser import BuildmachineParser
 
 def main():
 
-  Parser = BuildmachineParser()
+  Parser = BuildMachineParser()
   Args = vars(Parser.parse_args())
 
   BM = BuildMachine(Args)

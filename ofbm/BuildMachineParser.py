@@ -18,14 +18,12 @@ from .utils import currentTimestamp
 ######################################################
 
 
-def BuildmachineParser():
+def BuildMachineParser():
   
   Parser = argparse.ArgumentParser(description="Tool for automatically build, test and package the OpenFLUID modelling platform")
 
   DefaultTempDir = os.path.join(tempfile.gettempdir(),"openfluid-build-machine", currentTimestamp(noSpace=True))
   Parser.add_argument('--temp-dir',default=DefaultTempDir, help="Temporary folder path (will be created if not present)")
-
-  Parser.add_argument('--home-dir',default=os.path.join(expanduser("~"),".openfluid"), help=".openfluid folder location")
 
   Parser.add_argument('--build-jobs', default=1, help="option -j of make step")
 
