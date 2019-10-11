@@ -1,0 +1,30 @@
+---
+other-contexts:
+  - docker:ofbuild/fedora-29-qt5
+
+all-contexts: &all-contexts
+  - docker:ofbuild/fedora-28-qt5
+  - docker:ofbuild/ubuntu-19.04-qt5
+
+setups:
+  - LOCAL-TEST: &LOCAL-TEST
+      build-type: test
+      build-jobs: 10
+      temp-dir: /tmp/openfluid-build-machine/_TEST
+      contexts: 
+        - local:/home/thoniarm/Documents/PROJEKTS/HIDDEN_OF_FACTORY/GitRepositories/development/openfluid-iii/
+
+  - FULL-PACK: &FULL-PACK
+      build-type: package
+      temp-dir: /shared/_EVERYTHING2
+      run-examples: "*"
+      contexts: *all-contexts
+      build-jobs: 12
+      pyopenfluid-repos: default
+      ropenfluid-repos: default
+      openfluidjs-repos: default
+
+
+active-setups:
+- *LOCAL-TEST
+...

@@ -1,0 +1,19 @@
+---
+setups:
+  - LOCAL-TEST: &LOCAL-PACK
+      build-type: package
+      build-jobs: 10
+      temp-dir: /tmp/openfluid-build-machine/
+      contexts: 
+        - local
+  
+  - MINIMAL-TEST: &MIN-TEST
+      build-type: test
+      temp-dir: /shared/TMP_from_Test
+      contexts: 
+        - docker:ofbuild/ubuntu-19.04-qt5
+
+
+active-setups:
+  - *MIN-TEST
+...
