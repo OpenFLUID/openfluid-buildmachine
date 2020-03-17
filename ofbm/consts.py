@@ -1,1 +1,1 @@
-LOGS_SUBDIR = 'buildmachine-logs'
+LOGS_SUBDIR = 'log'

@@ -25,7 +25,8 @@ setup(name = 'openfluid-buildmachine',
       entry_points = {
           'console_scripts': [
               'ofbm = ofbm.__main__:main',
-              'mbm = mbm.__main__:main'
+              'mbm = mbm.__main__:main',
+              'openfluid-mbm = mbmRecast.__main__:main'
           ]
       },
       test_suite='tests',

@@ -41,7 +41,7 @@ class MultiBuildMachine:
         EmptySummary = {"steps":[], "metadata":{"log-path":""}}
         LaunchLogs = {"OUT":"", "ERR":""}
 
-        if Image.startswith("/"): # For local launch
+        if Image == "" or Image.startswith("/"): # For local launch
             Cmd = "python3 %s/../OFBMInjector.py %s" % (os.path.dirname(os.path.realpath(__file__)), str(self.isFake) + " " +Params)
             ConvertedLogDir = LogDir
             LogPath = os.path.join(ConvertedLogDir, consts.LOGS_SUBDIR)
@@ -87,10 +87,12 @@ class MultiBuildMachine:
     ######################################################
 
 
-    def triggerBuilds(self, ConfFile, GeneralOutDir="."):
+    def triggerBuilds(self, ConfFile, ExecDir="."):
         """Fetch instructions from yaml configuration file, triggers builds and generates summaries"""
-        if not os.path.exists(GeneralOutDir):
-            os.mkdir(GeneralOutDir)
+        if not os.path.exists(ExecDir):
+            os.mkdir(ExecDir)
+        GlobalOutDir = os.path.join(ExecDir, "global")
+        os.mkdir(GlobalOutDir)
 
         Setups = utils.importYaml(ConfFile)
 
@@ -118,15 +120,15 @@ class MultiBuildMachine:
                 if "temp-dir" in Setup:
                     TempDir = Setup["temp-dir"]
                 else:
-                    TempDir = os.path.join(tempfile.gettempdir(),"openfluid-build-machine")
+                    TempDir = ExecDir  # os.path.join(tempfile.gettempdir(),"openfluid-build-machine")
+                    Setup["temp-dir"] = TempDir
                 if System == "local":
-                    if SeveralContexts:
-                        TempDir += "/Local-%d"%NContext
-                        NContext += 1
+                    TempDir += "/Local-%d"%NContext
+                    NContext += 1
                 elif System == "docker":
-                    if TempDir[:8] != "/shared/":
+                    """if TempDir[:8] != "/shared/":
                         logging.error("Temp dir %s must be located in /shared/ folder for image/host communication reasons"%TempDir)
-                        exit(0)
+                        exit(0)"""
                     TempDir += "/%s/"%Image
                 else:
                     logging.error("Launch for %s not implemented"%Context)
@@ -161,13 +163,13 @@ class MultiBuildMachine:
                 ProceduresSummary.append(BuildSummary)
 
         ReportName = 'fullreport.json'
-        JsonFile = os.path.join(GeneralOutDir, ReportName)
+        JsonFile = os.path.join(GlobalOutDir, ReportName)
         with open(JsonFile, 'w') as Outfile:
           Outfile.write(json.dumps(ProceduresSummary, indent=4))
 
         logging.info("%s generated."%ReportName)
-        LogFile = GeneralOutDir+'/mbm_%s.txt'%ofbmutils.currentTimestamp(True)
-        utils.constructMultiBuildHTMLSummary(ProceduresSummary, OutDir=GeneralOutDir, LogFile=LogFile)
+        LogFile = GlobalOutDir+'/mbm_%s.txt'%ofbmutils.currentTimestamp(True)
+        utils.constructMultiBuildHTMLSummary(ProceduresSummary, OutDir=GlobalOutDir, LogFile=LogFile)
 
 
 if __name__ == "__main__":

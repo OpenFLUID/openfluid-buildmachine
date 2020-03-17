@@ -37,6 +37,7 @@ def MultiBuildMachineParser():
     Parser.add_argument("--shell", "-s", default=False, action='store_true', help="if true, returns mbm outputs in shell (independant from shell option of ofbm)")
     return Parser
 
+
 ######################################################
 ######################################################
 

@@ -53,12 +53,12 @@ class BuildMachine :
         self.AllRepos = self.BaseRepos + self.ChildrenRepos
         ## OF
         self.SrcSubDirs = dict()
-        self.SrcSubDirs["openfluid"] = 'openfluid-src'
-        self.OpenFLUIDBuildSubdir = 'openfluid-build'
+        self.SrcSubDirs["openfluid"] = os.path.join('src', "openfluid")
+        self.OpenFLUIDBuildSubdir = os.path.join('build', "openfluid")
         ## ROF
-        self.SrcSubDirs["ropenfluid"] = 'ropenfluid-src'
-        self.SrcSubDirs["pyopenfluid"] = 'pyopenfluid-src'
-        self.SrcSubDirs["openfluidjs"] = 'openfluidjs-src'
+        self.SrcSubDirs["ropenfluid"] = os.path.join("src", "ropenfluid")
+        self.SrcSubDirs["pyopenfluid"] = os.path.join("src", "pyopenfluid")
+        self.SrcSubDirs["openfluidjs"] = os.path.join("src", "openfluidjs")
         ## MACHINE LOGS
 
         self.LogSubdir = consts.LOGS_SUBDIR
@@ -216,6 +216,8 @@ class BuildMachine :
 
     def processCommonOptions(self, Options):
         """Convert generic input options into BuildMachine parameters"""
+        print("COMMON OPTIONS:")
+        print(Options)
         if 'which' in Options and not Options['which'] is None:
             self.BuildType = Options["which"]
 
@@ -286,7 +288,7 @@ class BuildMachine :
         elif self.BuildType == "test":
             self.OpenFLUIDCMakeCommands["configure"] = ["cmake",self.AllCodebaseRepos["openfluid_repos"].LocalPath]
 
-        self.HostInfos['built-packages-dir'] = os.path.join(self.BaseTempPath, "packages-releases")
+        self.HostInfos['built-packages-dir'] = os.path.join(self.BaseTempPath, "release")
         # TODO
         # set packages dir to "/shared/..." if in container: "/shared/packages-releases" (check if /shared/ exists)
 
@@ -390,7 +392,7 @@ class BuildMachine :
         Step = "2_Configure"
         utils.resetDirectory(self.OpenFLUIDBuildPath, Purge=True)
         Command = self.OpenFLUIDCMakeCommands["configure"]
-        Header = "Configuring OpenFLUID for %s build"%self.BuildType
+        Header = "Configuring OpenFLUID for %s build from %s via command %s"%(self.BuildType,self.BaseTempPath,Command)
         self.logCommandAndCheck(Step, Command, Header)
 
     ########################################
