@@ -1,23 +1,25 @@
 ---
 other-contexts:
   - docker:ofbuild/fedora-29-qt5
+  - docker:ofbuild/ubuntu:19.04
+  - docker:ofbuild/fedora-root:30
 
 all-contexts: &all-contexts
-  - docker:ofbuild/fedora-28-qt5
-  - docker:ofbuild/ubuntu-19.04-qt5
+- docker:ofbuild/fedora-28-qt5
+- docker:ofbuild/ubuntu-18.04-qt5
+- docker:ofbuild/ubuntu-19.10-qt5
+  
 
 setups:
   - LOCAL-TEST: &LOCAL-TEST
       build-type: test
       build-jobs: 10
-      temp-dir: /tmp/openfluid-build-machine/_TEST
       openfluid-repos: OpenFLUID/openfluid
       contexts: 
         - local
 
   - FULL-PACK: &FULL-PACK
       build-type: package
-      temp-dir: /shared/_EVERYTHING2
       run-examples: "*"
       contexts: *all-contexts
       build-jobs: 12

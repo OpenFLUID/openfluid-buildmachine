@@ -93,15 +93,15 @@ def generateImage(Image):
 ######################################################
 
 
-def launchInDocker(Image, Cmd):
+def launchInDocker(Image, Cmd, ScriptDir, SharedDir=settings.SHARED_DIR, SrcDir=settings.SHARED_DIR+"/src/"):
     """Run a given command Cmd into a docker image Image via script run-docker-image"""
-    # TODO SET SCRIPTPATH AS PARAMETER SOMEWHERE
-    #ScriptPath = settings.FACTORY_LOCATION+"/GitRepositories/development/SOURCESUP_openfluid-buildmachine"
-    ScriptPath = os.path.dirname(os.path.realpath(__file__))
-    MySharedDir = settings.SHARED_DIR
-    FullCmd = ["sh", ScriptPath+"/run-docker-image.sh", MySharedDir, Image, "%s"%Cmd]
+    #os.system('chmod 777 -R %s'%ScriptDir)
+    os.system('chmod 777 -R %s'%SrcDir)
+    os.makedirs(SharedDir)
+    os.system('chmod 777 -R %s'%SharedDir)
+    FullCmd = ["sh", ScriptDir+"/run-docker-image.sh", ScriptDir, SharedDir, SrcDir, Image, "%s"%Cmd]
     #print(FullCmd)
-    logging.info("Command to be launched in docker image %s: %s"%(Image,FullCmd))
+    logging.info("Command to be launched in docker image %s, path %s: [[%s]]"%(Image,SharedDir," ".join(FullCmd)))
     P = subprocess.Popen(FullCmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
     out, err = P.communicate()
     Outputs = {"ERR":err, "OUT":out}

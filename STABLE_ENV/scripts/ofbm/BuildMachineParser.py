@@ -24,7 +24,7 @@ def BuildMachineParser():
 
     DefaultTempDir = os.path.join(tempfile.gettempdir(),"openfluid-build-machine", currentTimestamp(noSpace=True))
     Parser.add_argument('--temp-dir',default=DefaultTempDir, help="Temporary folder path (will be created if not present)")
-    Parser.add_argument('--src-dir',default=None, help="Folder where sources will be stored and used")
+    Parser.add_argument('--src-dir',default=None, help="Source folder path")
     
 
     Parser.add_argument('--build-jobs', '-j', default=1, help="option -j of make step")

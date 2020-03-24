@@ -17,7 +17,7 @@ from mbm import MultiBuildMachine as MBM
 ######################################################
 ######################################################
 
-ressourceDir = os.path.dirname(os.path.abspath(__file__))+"/ressources/"
+ressourceDir = os.path.dirname(os.path.abspath(__file__))+"/resources/"
 
 
 class MainTest(unittest.TestCase):

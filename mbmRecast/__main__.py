@@ -11,11 +11,14 @@ import argparse
 import logging
 
 from .MBMEnv import MBMEnv
+from ofbm import utils as ofbmutils
 
 
-for handler in logging.root.handlers[:]:
-    logging.root.removeHandler(handler)
+"""#for handler in logging.root.handlers[:]:
+#    logging.root.removeHa
+# ndler(handler)
 logging.basicConfig(filename="OFBM_logs_main.txt",level=logging.INFO)
+"""
 
 
 ######################################################

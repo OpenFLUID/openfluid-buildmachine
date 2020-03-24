@@ -12,16 +12,27 @@ from ofbm import utils as ofbmutils
 from mbm import MultiBuildMachine as MBM
 
 
-def MBMEnv(Args):
-    Mode = Args["which"]
+def MBMEnv(Args, isFake=False):   
+    if "which" in Args:
+        Mode = Args["which"]
+    else:
+        print("Argument 'create' or 'run' needed")
+        return 1
     EnvDir = Args["env_path"]
-
+    ScriptDir = os.path.join(EnvDir, "scripts")
+    
     if Mode == "create":
         print("Create MBM environment")
         os.makedirs(EnvDir)
         shutil.copyfile("./mbmRecast/resources/basicConf.yml", os.path.join(EnvDir, "config.yml"))
-        os.makedirs(os.path.join(EnvDir, "scripts"))
-    
+        
+        # add all necessary scripts
+        os.makedirs(ScriptDir)
+        shutil.copyfile("./mbm/run-docker-image.sh", os.path.join(ScriptDir, "run-docker-image.sh"))
+        for f in ["__init__.py", "OFBMInjector.py"]:
+            shutil.copyfile(f, os.path.join(ScriptDir, f))
+        shutil.copytree("ofbm", os.path.join(ScriptDir, "ofbm")) # TODO spot necessary scripts only
+
     elif Mode == "run":
         print("Run MBM environment")
         ExecDir = os.path.join(EnvDir, "exec_"+ofbmutils.currentTimestamp(noSpace=True))
@@ -29,5 +40,5 @@ def MBMEnv(Args):
         ofbmutils.resetDirectory(ExecDir, Purge=True)
         shutil.copyfile(os.path.join(EnvDir, "config.yml"), os.path.join(ExecDir, "config.yml"))
         # triggers run
-        CMBM = MBM.MultiBuildMachine(OutputInShell=False, tryImageBuild=False)
-        CMBM.triggerBuilds(os.path.join(ExecDir, "config.yml"), ExecDir)
+        CMBM = MBM.MultiBuildMachine(OutputInShell=True, tryImageBuild=False, isFake=isFake)
+        CMBM.triggerBuilds(os.path.join(ExecDir, "config.yml"), ExecDir, ScriptDir=ScriptDir)

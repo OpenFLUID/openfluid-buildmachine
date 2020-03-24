@@ -75,6 +75,15 @@ Precisions about try-image-build:
 - a check is done to estimate if this build can fit in the available space on given volume, preventing the build when the space is not sufficient. 
 - stay vigilant about disk space
 
+MBM-Env
+-------
+
+Structured wrapper for MBM
+
+openfluid-mbm [-h] {create,run} [path/to/env]
+
+"create" command generates a standalone folder with scripts and structure for runs
+"run" command triggers the multi-buildmachine inside this standalone folder, according its "config.yaml" settings, and create an "exec..." folder for the current run.
 
 Development
 ===========

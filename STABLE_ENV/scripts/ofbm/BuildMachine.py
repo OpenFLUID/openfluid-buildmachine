@@ -376,7 +376,6 @@ class BuildMachine :
 
         if os.path.isdir(CodebaseRep.LocalPath):
             print("REPO EXISTS", CodebaseRep.LocalPath)
-            return
             # remove previous repo dir if existing
             #shutil.rmtree(CodebaseRep.LocalPath)
 

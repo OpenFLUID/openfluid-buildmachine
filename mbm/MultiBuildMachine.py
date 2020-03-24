@@ -34,7 +34,7 @@ class MultiBuildMachine:
     ######################################################
     
 
-    def genericBuild(self, Params, Image="", LogDir="/"):
+    def genericBuild(self, Params, Image="", LogDir="/", ScriptDir="", SrcDir=""):
         """Activate the OpenFLUID build on given context (local if Image parameter is empty) and generates summary"""
         # TODO SET INSIDE SUBPROCESS OR THREAD FOR PARALLEL CALL?
 
@@ -49,14 +49,17 @@ class MultiBuildMachine:
                                                   OutputInShell=self.OutputInShell, OutputAsReturn=True)
         
         else:
-            Cmd = "python3 /shared/openfluid-buildmachine/OFBMInjector.py %s" % (str(self.isFake) + " " +Params)
-            HostPath = settings.SHARED_DIR
+            Cmd = "python3 /shared/scripts/OFBMInjector.py %s" % (str(self.isFake) + " " +Params)
+            HostPath = LogDir
             ConvertedLogDir = LogDir.replace("/shared", HostPath)
             
             # check if docker image exists, deploy it otherwise
-            if Image in DM.getImages(NameOnly=True):
+            IsImage = False
+            ImageID = Image.split(":")[0]
+            if ImageID in DM.getImages(NameOnly=True): #TODO renforcer pour vérifier existence tag
                 logging.info("Launching ofbm in image %s" % Image)
-                LaunchLogs = DM.launchInDocker(Image, Cmd)
+                IsImage = True
+                
             elif self.tryImageBuild:
                 logging.info("Building docker image %s" % Image)
                 CreationReturnCode = DM.generateImage(Image)
@@ -64,13 +67,16 @@ class MultiBuildMachine:
                 # trigger launch if image successfully created
                 if Image in DM.getImages(NameOnly=True):
                     logging.info("Launching ofbm in image %s" % Image)
-                    LaunchLogs = DM.launchInDocker(Image, Cmd)
+                    IsImage = True
                 else:
                     logging.error("Docker image %s missing after building" % (Image))
             else:
                 ErrorTxt = "Image %s is not created. Please generate this docker image before performing any operation."%Image
                 logging.error(ErrorTxt)
                 return EmptySummary
+            
+            if IsImage:
+                LaunchLogs = DM.launchInDocker(Image, Cmd, ScriptDir, LogDir, SrcDir)
 
         LogPath = os.path.join(ConvertedLogDir, consts.LOGS_SUBDIR)
         ReportPath = os.path.join(LogPath, "report.json")
@@ -87,12 +93,21 @@ class MultiBuildMachine:
     ######################################################
 
 
-    def triggerBuilds(self, ConfFile, ExecDir="."):
+    def triggerBuilds(self, ConfFile, ExecDir=".", ScriptDir="."):
         """Fetch instructions from yaml configuration file, triggers builds and generates summaries"""
         if not os.path.exists(ExecDir):
             os.mkdir(ExecDir)
         GlobalOutDir = os.path.join(ExecDir, "global")
+        LogOutDir = os.path.join(ExecDir, "logs")
+        SrcDir = os.path.join(ExecDir, "src")
         os.mkdir(GlobalOutDir)
+        os.mkdir(LogOutDir)
+        os.mkdir(SrcDir)
+
+        logging.basicConfig(filename=LogOutDir+"/build_logs.txt",level=logging.INFO,#"/MBM_logs_%s.txt"%ofbmutils.currentTimestamp(noSpace=True)
+            format='%(asctime)s %(levelname)-8s %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S')
+        logging.getLogger().addHandler(logging.StreamHandler())
 
         Setups = utils.importYaml(ConfFile)
 
@@ -112,7 +127,8 @@ class MultiBuildMachine:
             NContext = 0
             for Context in Setup["contexts"]:
                 if ":" in Context:
-                    System, Image = Context.split(":")
+                    SplittedContext = Context.split(":")
+                    System, Image = SplittedContext[0], ":".join(SplittedContext[1:])
                 else:
                     System, Image = Context, ""
 
@@ -129,12 +145,16 @@ class MultiBuildMachine:
                     """if TempDir[:8] != "/shared/":
                         logging.error("Temp dir %s must be located in /shared/ folder for image/host communication reasons"%TempDir)
                         exit(0)"""
-                    TempDir += "/%s/"%Image
+                    TempDir += "/%s/"%Image.replace(":","_").replace(".","-")
                 else:
                     logging.error("Launch for %s not implemented"%Context)
 
 
-                BuildMachineParams = [("temp-dir", TempDir)]
+                BuildMachineParams = []
+                if System == "local":
+                    BuildMachineParams+= [("temp-dir", TempDir), ("src-dir", SrcDir)]
+                else:
+                    BuildMachineParams+= [("temp-dir", "/shared/build/"), ("src-dir", "/shared/src/")]
                 GlobalParams = ["shell", "temp-dir", "build-jobs", "openfluid-repos"]
                 SubParserParams = []
 
@@ -153,7 +173,7 @@ class MultiBuildMachine:
                 ParamsTxt = utils.BMArgsFromParams(BuildMachineParams, Setup["build-type"], SubParserParams)
                 print(ParamsTxt)
                 # LAUNCH BUILD
-                BuildSummary = self.genericBuild(ParamsTxt, Image, TempDir)
+                BuildSummary = self.genericBuild(ParamsTxt, Image, TempDir, ScriptDir=ScriptDir, SrcDir=SrcDir)
 
                 # INJECT OUTPUTS
                 if "metadata" not in BuildSummary:
