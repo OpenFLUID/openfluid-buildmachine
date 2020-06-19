@@ -160,4 +160,4 @@ def constructMultiBuildHTMLSummary(ProceduresSummary, OutDir=".", LogFile=""):
     f.write(HtmlContent)
     f.close()
 
-    logging.info("file://%s written."%HtmlPath)
+    logging.info("-- file://%s written."%HtmlPath)

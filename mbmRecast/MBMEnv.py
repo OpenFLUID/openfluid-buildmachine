@@ -22,7 +22,7 @@ def MBMEnv(Args, isFake=False):
     ScriptDir = os.path.join(EnvDir, "scripts")
     
     if Mode == "create":
-        print("Create MBM environment")
+        print("-- Creating MBM environment")
         os.makedirs(EnvDir)
         shutil.copyfile("./mbmRecast/resources/basicConf.yml", os.path.join(EnvDir, "config.yml"))
         
@@ -31,10 +31,13 @@ def MBMEnv(Args, isFake=False):
         shutil.copyfile("./mbm/run-docker-image.sh", os.path.join(ScriptDir, "run-docker-image.sh"))
         for f in ["__init__.py", "OFBMInjector.py"]:
             shutil.copyfile(f, os.path.join(ScriptDir, f))
+        if isFake:
+            shutil.copytree("tests", os.path.join(ScriptDir, "tests"))
         shutil.copytree("ofbm", os.path.join(ScriptDir, "ofbm")) # TODO spot necessary scripts only
+        print("-- Creating MBM environment - done")
 
     elif Mode == "run":
-        print("Run MBM environment")
+        print("-- Running MBM in environment")
         ExecDir = os.path.join(EnvDir, "exec_"+ofbmutils.currentTimestamp(noSpace=True))
 
         ofbmutils.resetDirectory(ExecDir, Purge=True)

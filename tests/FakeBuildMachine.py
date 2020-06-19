@@ -12,11 +12,11 @@ from ofbm import BuildMachine as BM
 
 class FakeBuildMachine(BM.BuildMachine):
     def __init__(self,args, AutoTrigger=True):
-        BM.BuildMachine.__init__(self, args, AutoTrigger)
         self.returnCodes = {"configure":0,
                              "build":0,
                              "test":200,
                              "package":200}
+        BM.BuildMachine.__init__(self, args, AutoTrigger)
 
     ########################################
     

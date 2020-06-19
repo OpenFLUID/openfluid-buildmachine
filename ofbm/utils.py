@@ -61,7 +61,7 @@ def resetDirectory(Path, Purge=False):
 
     if NeedCreation:
         os.makedirs(Path)
-        print("Made PATH %s" % Path)
+        print("-- Created path: %s" % Path)
 
 
 ############################################################################
@@ -81,7 +81,7 @@ outputLogRedirect = {"OUT":logging.info, "ERR":logging.error}
 
 def subprocessCall(Command, FilePath="", CommandCwd=".", OutputInShell=False, OutputAsReturn=False, CustomEnv=None): # TODO check if "." == os.getcwd() in every case
 
-    mergeLogs = False
+    mergeLogs = True
     ReturnCode = 1
     out, err = "", ""
     if OutputInShell:
@@ -125,7 +125,7 @@ def subprocessCall(Command, FilePath="", CommandCwd=".", OutputInShell=False, Ou
 def addToLogFile(StepFile, Content, TS=0):
 
     try:
-        f = open(StepFile, "a+")
+        f = open(StepFile, "a+", encoding="utf8")
     except IOError:
         logging.warning("Can't open log file %s" % StepFile)
         return
@@ -133,7 +133,8 @@ def addToLogFile(StepFile, Content, TS=0):
     if TS == 0:
         TS = currentTimestamp()
 
-    f.write("%s\t%s\n" % (TS, Content))
+    Line = str(TS)+"\t"+Content+"\n"
+    f.write(Line)
     f.close()
 
 

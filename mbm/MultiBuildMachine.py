@@ -57,21 +57,21 @@ class MultiBuildMachine:
             IsImage = False
             ImageID = Image.split(":")[0]
             if ImageID in DM.getImages(NameOnly=True): #TODO renforcer pour vérifier existence tag
-                logging.info("Launching ofbm in image %s" % Image)
+                #logging.info("--     Launching build machine in image: %s" % Image)
                 IsImage = True
                 
             elif self.tryImageBuild:
-                logging.info("Building docker image %s" % Image)
+                logging.info("--     Building docker image: %s" % Image)
                 CreationReturnCode = DM.generateImage(Image)
-                logging.debug("Creation return code: %d" % CreationReturnCode)
+                logging.debug("--     Creation return code: %d" % CreationReturnCode)
                 # trigger launch if image successfully created
                 if Image in DM.getImages(NameOnly=True):
-                    logging.info("Launching ofbm in image %s" % Image)
+                    logging.info("--     Launching build machine in image: %s" % Image)
                     IsImage = True
                 else:
-                    logging.error("Docker image %s missing after building" % (Image))
+                    logging.error("--     Docker image %s missing after building" % (Image))
             else:
-                ErrorTxt = "Image %s is not created. Please generate this docker image before performing any operation."%Image
+                ErrorTxt = "--     Image %s is not created. Please generate this docker image before performing any operation."%Image
                 logging.error(ErrorTxt)
                 return EmptySummary
             
@@ -104,20 +104,23 @@ class MultiBuildMachine:
         os.mkdir(LogOutDir)
         os.mkdir(SrcDir)
 
-        logging.basicConfig(filename=LogOutDir+"/build_logs.txt",level=logging.INFO,#"/MBM_logs_%s.txt"%ofbmutils.currentTimestamp(noSpace=True)
+        logging.basicConfig(filename=LogOutDir+"/mbm_run_logs.txt",level=logging.INFO,#"/MBM_logs_%s.txt"%ofbmutils.currentTimestamp(noSpace=True)
             format='%(asctime)s %(levelname)-8s %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S')
-        logging.getLogger().addHandler(logging.StreamHandler())
+        logging.getLogger("mbm").addHandler(logging.StreamHandler())
 
         Setups = utils.importYaml(ConfFile)
 
         ProceduresSummary = []
-        logging.info("ACTIVE:")
+        logging.info("-- Triggering builds")
 
         for Setup in Setups["active-setups"]:
 
             # SET PARAMETERS
-            logging.info("> "+str(Setup))
+            logging.info("--   "+"*"*20)
+            for Key in Setup:
+                logging.info("--   "+f"{Key}: {Setup[Key]}")
+            
 
             for MandatoryGenericParam in ["contexts", "build-type"]:
                 if MandatoryGenericParam not in Setup:
@@ -171,7 +174,8 @@ class MultiBuildMachine:
                     BuildMachineParams += [("openfluid-repos",Image)]
 
                 ParamsTxt = utils.BMArgsFromParams(BuildMachineParams, Setup["build-type"], SubParserParams)
-                print(ParamsTxt)
+                print("--     "+"*"*20)
+                #print("--     Launching OFBM with params: ",ParamsTxt)
                 # LAUNCH BUILD
                 BuildSummary = self.genericBuild(ParamsTxt, Image, TempDir, ScriptDir=ScriptDir, SrcDir=SrcDir)
 
@@ -182,12 +186,13 @@ class MultiBuildMachine:
                 BuildSummary["metadata"]["context"] = Context
                 ProceduresSummary.append(BuildSummary)
 
+        logging.info("--")
         ReportName = 'fullreport.json'
         JsonFile = os.path.join(GlobalOutDir, ReportName)
         with open(JsonFile, 'w') as Outfile:
           Outfile.write(json.dumps(ProceduresSummary, indent=4))
 
-        logging.info("%s generated."%ReportName)
+        logging.info("-- %s generated."%ReportName)
         LogFile = GlobalOutDir+'/mbm_%s.txt'%ofbmutils.currentTimestamp(True)
         utils.constructMultiBuildHTMLSummary(ProceduresSummary, OutDir=GlobalOutDir, LogFile=LogFile)
 

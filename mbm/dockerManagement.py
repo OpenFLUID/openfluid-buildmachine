@@ -96,15 +96,26 @@ def generateImage(Image):
 def launchInDocker(Image, Cmd, ScriptDir, SharedDir=settings.SHARED_DIR, SrcDir=settings.SHARED_DIR+"/src/"):
     """Run a given command Cmd into a docker image Image via script run-docker-image"""
     #os.system('chmod 777 -R %s'%ScriptDir)
-    os.system('chmod 777 -R %s'%SrcDir)
+    os.system('chmod 777 -R %s --quiet'%SrcDir) #--quiet?
+    
     os.makedirs(SharedDir)
     os.system('chmod 777 -R %s'%SharedDir)
     FullCmd = ["sh", ScriptDir+"/run-docker-image.sh", ScriptDir, SharedDir, SrcDir, Image, "%s"%Cmd]
     #print(FullCmd)
-    logging.info("Command to be launched in docker image %s, path %s: [[%s]]"%(Image,SharedDir," ".join(FullCmd)))
+    logging.info("--     Running docker image: %s"%(Image))
+    logging.info("--     Shared path: %s"%(SharedDir))
+    logging.info("--     Command: %s"%(" ".join(FullCmd)))
     P = subprocess.Popen(FullCmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
     out, err = P.communicate()
     Outputs = {"ERR":err, "OUT":out}
     for Output in Outputs:
-        ofbmutils.outputLogRedirect[Output](Outputs[Output])
+        Prefix = ""
+        for Line in Outputs[Output].splitlines():
+            DecodedLine = Line.decode('utf-8')
+            if set(DecodedLine) != set("#"):
+                ofbmutils.outputLogRedirect[Output]("--     "+Prefix+DecodedLine)
+                Prefix = ""
+            else:
+                Prefix = "== "
+            
     return Outputs

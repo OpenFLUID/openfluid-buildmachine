@@ -53,7 +53,7 @@ def main():
     logging.basicConfig(filename=Args["out_dir"]+"/MBM_logs_%s.txt"%ofbmutils.currentTimestamp(noSpace=True),level=logging.INFO,
         format='%(asctime)s %(levelname)-8s %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S')
-    logging.getLogger().addHandler(logging.StreamHandler())
+    logging.getLogger("mbm").addHandler(logging.StreamHandler())
     logging.debug("Args: %s"%str(Args))
     
     CMBM = MBM.MultiBuildMachine(OutputInShell=Args["shell"], tryImageBuild=Args["try_image_build"])

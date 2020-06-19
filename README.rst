@@ -55,6 +55,7 @@ ofbm package [-h] [--run-examples RUN_EXAMPLES]
 RUN_EXAMPLES can be a list of referenced examples in Firespread,MHYDAS_Roujan,Primitive,Manhattan separated by commas, 
                     or * to run every example.
 Each ..._REPOS can be a github partial url or "default" to target the OpenFLUID reference repository for each language.
+For github repositories, branch can be precised by adding the branch to checkout after the repo url with a "#" inbetween (for example: "OpenFLUID/openfluid#develop")
 
 
 MBM

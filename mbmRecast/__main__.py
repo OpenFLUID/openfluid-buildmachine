@@ -49,5 +49,7 @@ def MBMParser():
 def main():
     Parser = MBMParser()
     Args = vars(Parser.parse_args())
-    print("MAIN:", Args)
-    m = MBMEnv(Args)
+    print("-- Triggering MBM Env")
+    print("--   Mode:", Args["which"])
+    print("--   Env dir:", Args["env_path"])
+    m = MBMEnv(Args)#, isFake=True)
