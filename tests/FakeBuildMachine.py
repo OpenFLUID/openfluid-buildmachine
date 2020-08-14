@@ -12,10 +12,11 @@ from ofbm import BuildMachine as BM
 
 class FakeBuildMachine(BM.BuildMachine):
     def __init__(self,args, AutoTrigger=True):
-        self.returnCodes = {"configure":0,
-                             "build":0,
-                             "test":200,
-                             "package":200}
+        self.returnCodes = {"clone":0,
+                            "configure":0,
+                             "build":100,
+                             "test":0,
+                             "package":0}
         BM.BuildMachine.__init__(self, args, AutoTrigger)
 
     ########################################
@@ -25,12 +26,24 @@ class FakeBuildMachine(BM.BuildMachine):
         Command = ["sh", "generateReturnCode.sh", str(ReturnCode)]
         self.logCommandAndCheck(Step, Command, Header, CommandCwd=os.path.dirname(os.path.abspath(__file__)))
     
+
+    def cloneProcedure(self, Step, RepoKey):
+        """Execute the cloning git shell command and fetch output"""
+        CodebaseRep = self.AllCodebaseRepos[RepoKey+"_repos"]
+
+        if os.path.isdir(CodebaseRep.LocalPath):
+            print("REPO EXISTS", CodebaseRep.LocalPath)
+            return
+
+        Header = "Cloning (Fake)"
+        self.emulateReturnCode(Step, Header, self.returnCodes["clone"])
+
     ########################################
     
     def configureOpenFLUID(self):
         
         Step = "2_Configure"
-        Header = "Configuring OpenFLUID for %s build"%self.BuildType
+        Header = "Configuring (Fake) OpenFLUID for %s build"%self.BuildType
         self.emulateReturnCode(Step, Header, self.returnCodes["configure"])
 
     ########################################
@@ -38,7 +51,7 @@ class FakeBuildMachine(BM.BuildMachine):
     def buildOpenFLUID(self):
         
         Step = "3_Build"
-        Header = "Building OpenFLUID"
+        Header = "Building (Fake) OpenFLUID"
         self.emulateReturnCode(Step, Header, self.returnCodes["build"])
         
     ########################################
@@ -46,7 +59,7 @@ class FakeBuildMachine(BM.BuildMachine):
     def testOpenFLUID(self):
         
         Step = "4_Test"
-        Header = "Running OpenFLUID tests"
+        Header = "Running (Fake) OpenFLUID tests"
         self.emulateReturnCode(Step, Header, self.returnCodes["test"])
         
     ########################################
@@ -54,5 +67,5 @@ class FakeBuildMachine(BM.BuildMachine):
     def packageOpenFLUID(self):
         
         Step = "4_Package"
-        Header = "Packaging OpenFLUID"
+        Header = "Packaging (Fake) OpenFLUID"
         self.emulateReturnCode(Step, Header, self.returnCodes["package"])

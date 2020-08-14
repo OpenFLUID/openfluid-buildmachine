@@ -37,6 +37,9 @@ def BuildMachineParser():
     SubParsers = Parser.add_subparsers(help='sub-command help')
     PackageParser = SubParsers.add_parser("package",help="Build OpenFLUID and create packages")
 
+    PackageParser.add_argument('--localinstall', '-l', default=False, action='store_true',
+                        help='use local install instead of /usr')
+
     PackageParser.add_argument('--run-examples',default="*",
                                help="* for all, or example names separated by commas. Ex: Firespread,MHYDAS_Roujan")
                                

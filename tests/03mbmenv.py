@@ -21,16 +21,17 @@ targetEnv = resourceDir+"TEST_FAKE"
 
 class MainTest(unittest.TestCase):
     
-    @classmethod
-    def setUpClass(self):
-        if os.path.isdir(targetEnv):
-            shutil.rmtree(targetEnv)
+    """@classmethod
+    def setUpClass(self):"""
 
     def test_create(self):
-        MBMEnv.MBMEnv({"which":"create", "env_path":targetEnv})
+        if os.path.isdir(targetEnv):
+            shutil.rmtree(targetEnv)
+        MBMEnv.MBMEnv({"which":"create", "env_path":targetEnv}, isFake=True)
         self.assertTrue(True)
 
     def test_run(self):
+        print("Running env", targetEnv)
         MBMEnv.MBMEnv({"which":"run", "env_path":targetEnv}, isFake=True)
     
     

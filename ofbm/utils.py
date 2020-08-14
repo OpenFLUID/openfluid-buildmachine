@@ -49,7 +49,7 @@ def envInfos():
 ############################################################################
 
 
-def resetDirectory(Path, Purge=False):
+def resetDirectory(Path, Purge=False, Verbose=True):
 
     NeedCreation = True
 
@@ -61,7 +61,12 @@ def resetDirectory(Path, Purge=False):
 
     if NeedCreation:
         os.makedirs(Path)
-        print("-- Created path: %s" % Path)
+        if Verbose:
+            maxLen = 50
+            if len(Path) > maxLen:
+                print("-- Created path: ...%s" % Path[-50:])
+            else:
+                print("-- Created path: %s" % Path[-30:])
 
 
 ############################################################################

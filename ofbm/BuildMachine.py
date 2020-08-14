@@ -50,6 +50,30 @@ class BuildMachine :
     """OpenFLUID building operations system"""
 
     def __init__(self,args, AutoTrigger=True):
+
+        if 'shell' in args and args['shell'] is not None:
+            self.OutputInShell = args['shell']
+        
+        self.wantLocalInstall = False
+        if 'localinstall' in args and args['localinstall'] is not None:
+            self.wantLocalInstall = args['localinstall']
+        
+        self.logger = logging.getLogger("bm")
+        #self.logger.setLevel(logging.DEBUG)
+        ##file_handler = logging.FileHandler('bm_activity.log', 'a')
+        
+        ##formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
+        ##file_handler.setFormatter(formatter)
+        ##file_handler.setLevel(logging.DEBUG)
+        ##self.logger.addHandler(file_handler)
+
+        #self.OutputInShell relevant for the display purpose? Theorically speaks about subprocess, can be adjusted?
+        ##stream_handler = logging.StreamHandler()
+        ##stream_handler.setLevel(logging.DEBUG)
+        ##self.logger.addHandler(stream_handler)
+
+        self.logger.info("NEW BUILD MACHINE")
+
         self.InitBuildTimestamp = utils.currentTimestamp()
         # CONSTANTS
         self.BaseRepos = ['openfluid_repos'] # Related to parser fields
@@ -78,7 +102,7 @@ class BuildMachine :
         self.BuildJobs = 1
 
         self.OutputInShell = False
-        self.verbosityLevel = 1# redundant with log level? see if logging handles std out prints
+        #self.verbosityLevel = 1# redundant with log level? see if logging handles std out prints
 
         # cf http://sametmax.com/ecrire-des-logs-en-python/
         self.SubreposOnly = False
@@ -196,6 +220,12 @@ class BuildMachine :
             CustomEnv["PATH"] = os.path.join(self.LocalInstallPath,"bin") + ":" + PreviousPath
             CustomEnv["OPENFLUID_INSTALL_PREFIX"] = self.LocalInstallPath
 
+        txtCommand = ["Command detail:", "  Command: "+str(Command), "  Cwd: "+CommandCwd]
+        if NeedEnv:
+            txtCommand += ["  "+str(CustomEnv)]
+        for tc in txtCommand:
+            utils.addToLogFile(FilePath, tc)
+
         ReturnCode = utils.subprocessCall(Command, FilePath, CommandCwd, self.OutputInShell, CustomEnv=CustomEnv)
             
         if not self.OutputInShell:
@@ -235,7 +265,8 @@ class BuildMachine :
         utils.addToLogFile(FilePath, "End of command.") # to have the timestamp of command's end
 
         Seconds = 0
-        print("Returncode %s %d\n"%(Step, ReturnCode))
+        #print("Returncode %s %d\n"%(Step, ReturnCode))
+        self.logger.log(logging.INFO, "Returncode %s %d\n"%(Step, ReturnCode))
         self.checkStepSuccess(Step, ReturnCode, Seconds)
         return ReturnCode
 
@@ -252,10 +283,6 @@ class BuildMachine :
 
         if 'build_jobs' in Options and not Options['build_jobs'] is None:
             self.BuildJobs = Options['build_jobs']
-
-        if 'shell' in Options:
-            if Options['shell'] is not None:
-                self.OutputInShell = Options['shell']
             
         if 'subrepos_only' in Options and not Options['subrepos_only'] is None:
             self.SubreposOnly = Options['subrepos_only']
@@ -319,11 +346,14 @@ class BuildMachine :
         """Convert build-related input options into BuildMachine parameters"""
 
         self.OpenFLUIDCMakeCommands["build"] = ["cmake","--build",self.SubBuildPath["openfluid"]]
-        self.OpenFLUIDCMakeCommands["test"] = ["ctest"]
+        self.OpenFLUIDCMakeCommands["test"] = ["ctest", "--output-on-failure"]
         self.OpenFLUIDCMakeCommands["package"] = ["cpack"]
 
         if self.BuildType == "package":
-            self.LocalInstallPath = os.path.join(self.BaseTempPath, "LocalInstall")
+            if self.wantLocalInstall:
+                self.LocalInstallPath = os.path.join(self.BaseTempPath, "LocalInstall")
+            else:
+                self.LocalInstallPath = "/usr"
             PackageCommand = ["cmake",self.AllCodebaseRepos["openfluid_repos"].LocalPath,"-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_INSTALL_PREFIX="+self.LocalInstallPath]
             self.OpenFLUIDCMakeCommands["configure"] = PackageCommand
 
@@ -348,16 +378,19 @@ class BuildMachine :
         #Can't use platform lib since some values will be wrong in docker case (parent os will be returned)
         self.EnvInfos = utils.envInfos()
 
-        self.HostInfos["OpenFLUIDInstallCommand"] = ["make", "install"]#self.LocalInstallPath
+        if self.wantLocalInstall:
+            self.HostInfos["OpenFLUIDInstallCommand"] = ["make", "install"]#self.LocalInstallPath
 
         if self.EnvInfos["distrib"] in ["ubuntu", "debian"]:
             self.HostInfos["PackagesExt"] = "deb"
-            #self.HostInfos["OpenFLUIDInstallCommand"] = ["/usr/bin/sudo","/usr/bin/dpkg","--install","@PACKAGING_FILE@"]
+            if not self.wantLocalInstall:
+                self.HostInfos["OpenFLUIDInstallCommand"] = ["/usr/bin/sudo","/usr/bin/dpkg","--install","@PACKAGING_FILE@"]
             self.OpenFLUIDCMakeCommands["package"] = ["cpack","-G","DEB"]
 
         elif self.EnvInfos["distrib"] == "fedora":
             self.HostInfos["PackagesExt"] = "rpm"
-            #self.HostInfos["OpenFLUIDInstallCommand"] = ["/usr/bin/sudo","/usr/bin/rpm","--install","@PACKAGING_FILE@"]
+            if not self.wantLocalInstall:
+                self.HostInfos["OpenFLUIDInstallCommand"] = ["/usr/bin/sudo","/usr/bin/rpm","--install","@PACKAGING_FILE@"]
             self.OpenFLUIDCMakeCommands["package"] = ["cpack","-G","RPM"]
 
         else:
@@ -446,12 +479,9 @@ class BuildMachine :
         Step = "2_Configure"
         utils.resetDirectory(self.SubBuildPath["openfluid"], Purge=True)
         Command = self.OpenFLUIDCMakeCommands["configure"]
-        FullConfigTxt = "Configuring OpenFLUID for %s build from %s via command %s"%(self.BuildType,self.BaseTempPath,Command)
-        if LOW_VERBOSITY:
-            Header = FullConfigTxt
-        else:
-            Header = "Configuring OpenFLUID"
-            logging.info(FullConfigTxt)
+        Header = "Configuring OpenFLUID"
+        logging.debug("Configure options: %s build from %s via command %s"%(self.BuildType,self.BaseTempPath,Command))
+        
         self.logCommandAndCheck(Step, Command, Header)
 
     ########################################
@@ -489,6 +519,9 @@ class BuildMachine :
 
         PackageFound = False
 
+        if not os.path.isdir(self.SubBuildPath["openfluid"]):
+            self.manualLog(Step, Header, 1, MessageErr="[BuildMachine] No openfluid build dir. Can't install")
+            return 1
         for f in os.listdir(self.SubBuildPath["openfluid"]):
             if f.endswith(".%s" % self.HostInfos["PackagesExt"]):
                 PackageFound = True
@@ -557,6 +590,11 @@ class BuildMachine :
         Header = "Building ROpenFLUID"
         RRepos = self.AllCodebaseRepos["ropenfluid_repos"].LocalPath
         self.logCommandAndCheck(Step, Command, Header, CommandCwd=RRepos, NeedEnv=True)
+        
+        for f in os.listdir(self.SubBuildPath["ropenfluid"]):
+            if f.endswith(".%s" % "tar.gz"):
+                shutil.copy(self.SubBuildPath["ropenfluid"]+"/"+f,self.HostInfos['built-packages-dir']+"/"+f)
+                self.logger.log(logging.INFO, "Copied ropenfluid package into "+self.HostInfos['built-packages-dir']+" dir")
 
     ########################################
 
@@ -577,7 +615,7 @@ class BuildMachine :
         """Trigger the PyOpenFLUID build step"""
         Step = "P3_Build"
         PythonBuildPath = self.SubBuildPath["pyopenfluid"]
-        Command = ["python3", "setup.py", "build"]#, "--build-base=%s"%PythonBuildPath]    # TODO Clean build dir every time?
+        Command = ["python3", "setup.py", "build"]
         Header = "Building PyOpenFLUID"
         self.logCommandAndCheck(Step, Command, Header, CommandCwd=self.SubBuildPath["pyopenfluid"], NeedEnv=True)
 
@@ -595,7 +633,7 @@ class BuildMachine :
     def packagePyOpenFLUID(self):
         """Trigger the PyOpenFLUID package step"""
         Step = "P5_Package"
-        Command = ["python3", "setup.py", "sdist", "bdist"]  # TODO Chose dir
+        Command = ["python3", "setup.py", "sdist", "bdist"]
         Header = "Packaging PyOpenFLUID"
         self.logCommandAndCheck(Step, Command, Header, CommandCwd=self.SubBuildPath["pyopenfluid"], NeedEnv=True)
 
@@ -604,11 +642,14 @@ class BuildMachine :
     def buildOpenFLUIDJS(self):
         """Trigger the OpenFLUIDJS build step"""
         Step = "J3_Build"
+        Header = "Building OpenFLUIDJS"
         JSRepos = self.AllCodebaseRepos["openfluidjs_repos"].LocalPath  # TODO Chose dir
         # TODO GERER CAS ABSENCE NPM AVEC EXCEPTION# duplicate python source
+        if not os.path.isdir(JSRepos):
+            self.manualLog(Step, Header, 1, MessageErr="[BuildMachine] Base JS repo does not exist: %s."%JSRepos)
+            return 1
         shutil.copytree(JSRepos, self.SubBuildPath["openfluidjs"])
-        Command = ["npm", "install"] #, "--prefix", self.SubBuildPath["openfluidjs"]
-        Header = "Building OpenFLUIDJS"
+        Command = ["npm", "install"]
         self.logCommandAndCheck(Step, Command, Header, CommandCwd=self.SubBuildPath["openfluidjs"], NeedEnv=True)
         
 

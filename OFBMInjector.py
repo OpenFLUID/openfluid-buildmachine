@@ -24,4 +24,4 @@ else:
 try:
     CurrentBM.triggerProcedure()
 except ProcedureException:
-    logging.error("CAUGHT PROC EX")
+    logging.error("Caught procedure exception")

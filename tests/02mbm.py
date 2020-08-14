@@ -9,6 +9,7 @@ import unittest
 
 import yaml
 import os
+import shutil
 
 
 from mbm import utils
@@ -55,6 +56,9 @@ class MainTest(unittest.TestCase):
       
         CMBM = MBM.MultiBuildMachine(OutputInShell=True)
         CMBM.triggerBuilds(ressourceDir+"/theoricalconf.yml")
+    
+    def tearDown(self):
+        shutil.rmtree("_out", True)
         
 
 

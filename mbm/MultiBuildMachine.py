@@ -28,6 +28,7 @@ class MultiBuildMachine:
         self.OutputInShell = OutputInShell
         self.tryImageBuild = tryImageBuild
         self.isFake = isFake
+        self.logger = None
     
     
     ######################################################
@@ -57,26 +58,26 @@ class MultiBuildMachine:
             IsImage = False
             ImageID = Image.split(":")[0]
             if ImageID in DM.getImages(NameOnly=True): #TODO renforcer pour vérifier existence tag
-                #logging.info("--     Launching build machine in image: %s" % Image)
+                #self.logger.log(logging.INFO, "--     Launching build machine in image: %s" % Image)
                 IsImage = True
                 
             elif self.tryImageBuild:
-                logging.info("--     Building docker image: %s" % Image)
+                self.logger.log(logging.INFO, "--     Building docker image: %s" % Image)
                 CreationReturnCode = DM.generateImage(Image)
-                logging.debug("--     Creation return code: %d" % CreationReturnCode)
+                self.logger.log(logging.DEBUG, "--     Creation return code: %d" % CreationReturnCode)
                 # trigger launch if image successfully created
                 if Image in DM.getImages(NameOnly=True):
-                    logging.info("--     Launching build machine in image: %s" % Image)
+                    self.logger.log(logging.INFO, "--     Launching build machine in image: %s" % Image)
                     IsImage = True
                 else:
-                    logging.error("--     Docker image %s missing after building" % (Image))
+                    self.logger.log(logging.ERROR, "--     Docker image %s missing after building" % (Image))
             else:
                 ErrorTxt = "--     Image %s is not created. Please generate this docker image before performing any operation."%Image
-                logging.error(ErrorTxt)
+                self.logger.log(logging.ERROR, ErrorTxt)
                 return EmptySummary
             
             if IsImage:
-                LaunchLogs = DM.launchInDocker(Image, Cmd, ScriptDir, LogDir, SrcDir)
+                LaunchLogs = DM.launchInDocker(Image, Cmd, ScriptDir, LogDir, SrcDir, Logger=self.logger)
 
         LogPath = os.path.join(ConvertedLogDir, consts.LOGS_SUBDIR)
         ReportPath = os.path.join(LogPath, "report.json")
@@ -85,7 +86,7 @@ class MultiBuildMachine:
             BuildSummary["metadata"]["log-path"] = LogPath
             return BuildSummary
         else:
-            logging.error(ReportPath+" not found. Build may have failed.")
+            self.logger.log(logging.ERROR, ReportPath+" not found. Build may have failed.")
             return EmptySummary
 
 
@@ -93,7 +94,7 @@ class MultiBuildMachine:
     ######################################################
 
 
-    def triggerBuilds(self, ConfFile, ExecDir=".", ScriptDir="."):
+    def triggerBuilds(self, ConfFile, ExecDir="_out", ScriptDir="."):
         """Fetch instructions from yaml configuration file, triggers builds and generates summaries"""
         if not os.path.exists(ExecDir):
             os.mkdir(ExecDir)
@@ -101,34 +102,37 @@ class MultiBuildMachine:
         LogOutDir = os.path.join(ExecDir, "logs")
         SrcDir = os.path.join(ExecDir, "src")
         os.mkdir(GlobalOutDir)
-        os.mkdir(LogOutDir)
+        try:
+            os.mkdir(LogOutDir)
+        except FileExistsError:
+            pass
         os.mkdir(SrcDir)
 
-        logging.basicConfig(filename=LogOutDir+"/mbm_run_logs.txt",level=logging.INFO,#"/MBM_logs_%s.txt"%ofbmutils.currentTimestamp(noSpace=True)
-            format='%(asctime)s %(levelname)-8s %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S')
-        logging.getLogger("mbm").addHandler(logging.StreamHandler())
+        if not self.logger:
+            print("NEED MBM LOGGER")
+            self.logger = logging.getLogger(__name__)
 
         Setups = utils.importYaml(ConfFile)
 
         ProceduresSummary = []
-        logging.info("-- Triggering builds")
+        self.logger.log(logging.INFO, "--")
+        self.logger.log(logging.INFO, "-- Triggering builds")
 
         for Setup in Setups["active-setups"]:
 
             # SET PARAMETERS
-            logging.info("--   "+"*"*20)
+            self.logger.log(logging.INFO, "--   "+"*"*20)
             for Key in Setup:
-                logging.info("--   "+f"{Key}: {Setup[Key]}")
+                self.logger.log(logging.INFO, "--   "+f"{Key}: {Setup[Key]}")
             
 
             for MandatoryGenericParam in ["contexts", "build-type"]:
                 if MandatoryGenericParam not in Setup:
-                    logging.error("'%s' missing for active setup"%MandatoryGenericParam)
+                    self.logger.log(logging.ERROR, "'%s' missing for active setup"%MandatoryGenericParam)
 
             SeveralContexts = len(Setup["contexts"]) > 1
             NContext = 0
-            for Context in Setup["contexts"]:
+            for Context in set(Setup["contexts"]): # CAUTION: ignores if context present several times in list
                 if ":" in Context:
                     SplittedContext = Context.split(":")
                     System, Image = SplittedContext[0], ":".join(SplittedContext[1:])
@@ -139,18 +143,18 @@ class MultiBuildMachine:
                 if "temp-dir" in Setup:
                     TempDir = Setup["temp-dir"]
                 else:
-                    TempDir = ExecDir  # os.path.join(tempfile.gettempdir(),"openfluid-build-machine")
+                    TempDir = os.path.join(ExecDir, "content", Setup["build-type"]+"_setup")  # os.path.join(tempfile.gettempdir(),"openfluid-build-machine")
                     Setup["temp-dir"] = TempDir
                 if System == "local":
                     TempDir += "/Local-%d"%NContext
                     NContext += 1
                 elif System == "docker":
                     """if TempDir[:8] != "/shared/":
-                        logging.error("Temp dir %s must be located in /shared/ folder for image/host communication reasons"%TempDir)
+                        self.logger.log(logging.ERROR, "Temp dir %s must be located in /shared/ folder for image/host communication reasons"%TempDir)
                         exit(0)"""
                     TempDir += "/%s/"%Image.replace(":","_").replace(".","-")
                 else:
-                    logging.error("Launch for %s not implemented"%Context)
+                    self.logger.log(logging.ERROR, "Launch for %s not implemented"%Context)
 
 
                 BuildMachineParams = []
@@ -170,8 +174,11 @@ class MultiBuildMachine:
                             BuildMachineParams += [(Param, Setup[Param])]
                         else:
                             SubParserParams += [(Param, Setup[Param])]
-                if System == "local" and not HasRepo:
-                    BuildMachineParams += [("openfluid-repos",Image)]
+                if System == "local":
+                    if not HasRepo:
+                        BuildMachineParams += [("openfluid-repos",Image)]
+                    if Setup["build-type"]=="package":
+                        SubParserParams += [("localinstall", "")]
 
                 ParamsTxt = utils.BMArgsFromParams(BuildMachineParams, Setup["build-type"], SubParserParams)
                 print("--     "+"*"*20)
@@ -186,15 +193,18 @@ class MultiBuildMachine:
                 BuildSummary["metadata"]["context"] = Context
                 ProceduresSummary.append(BuildSummary)
 
-        logging.info("--")
+        self.logger.log(logging.INFO, "-- Builds done")
         ReportName = 'fullreport.json'
         JsonFile = os.path.join(GlobalOutDir, ReportName)
         with open(JsonFile, 'w') as Outfile:
           Outfile.write(json.dumps(ProceduresSummary, indent=4))
 
-        logging.info("-- %s generated."%ReportName)
-        LogFile = GlobalOutDir+'/mbm_%s.txt'%ofbmutils.currentTimestamp(True)
-        utils.constructMultiBuildHTMLSummary(ProceduresSummary, OutDir=GlobalOutDir, LogFile=LogFile)
+        self.logger.log(logging.INFO, "--   %s generated."%ReportName)
+        #LogFile = GlobalOutDir+'/mbm_%s.txt'%ofbmutils.currentTimestamp(True)
+        LogFile = LogOutDir+'/mbm_run_logs.txt'
+        HtmlFilename = "summary.html"
+        HtmlPath = utils.constructMultiBuildHTMLSummary(ProceduresSummary, OutDir=GlobalOutDir, LogFile=LogFile, HtmlFilename=HtmlFilename)
+        self.logger.log(logging.INFO, "--   file://%s written."%HtmlPath)
 
 
 if __name__ == "__main__":

@@ -1,11 +1,6 @@
 #! /usr/bin/env python3
 #-*-coding:utf-8-*-
 
-import logging
-logging.basicConfig(filename="OFBM_logs_setup_2.txt",level=logging.INFO)
-
-#logger = logging.getLogger(__name__)
-#logger.addHandler(logging.StreamHandler())
 
 from setuptools import setup
 

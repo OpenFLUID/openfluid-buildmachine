@@ -54,9 +54,9 @@ def loadJsonSummary(FullPath):
 ######################################################
 
 
-def generateMultiBuildHTLMFromJSON(path=settings.OUTPUT_DIR+"/fullreport.json"):
+def generateMultiBuildHTLMFromJSON(path=settings.OUTPUT_DIR+"/fullreport.json", HtmlFilename="globalreport.html"):
     ProceduresSummary = loadJsonSummary(path)
-    constructMultiBuildHTMLSummary(ProceduresSummary)
+    return constructMultiBuildHTMLSummary(ProceduresSummary, HtmlFilename=HtmlFilename)
     
 
 CSS="""table {
@@ -104,9 +104,19 @@ th {
 """
 
 
-def constructMultiBuildHTMLSummary(ProceduresSummary, OutDir=".", LogFile=""):
+def constructMultiBuildHTMLSummary(ProceduresSummary, OutDir=".", LogFile="", HtmlFilename="globalreport.html"):
     ### Generates html
     HtmlContent = "<style>%s</style>"%CSS
+
+    # General metadata
+    HtmlContent += '<h1>OpenFLUID Multi-Build Machine report</h1>\n<h2>Setup</h2>\n<ul>'
+    for k in ProceduresSummary[0]["metadata"]["setup"]:
+        if k not in ["contexts"]:
+            HtmlContent += '<li>%s: %s</li>\n'%(k,ProceduresSummary[0]["metadata"]["setup"][k])
+    HtmlContent += '</ul>'
+
+    HtmlContent += "<h2>Run</h2>"
+
     if LogFile != "":
         HtmlContent += '<p><a href="%s">General logs</a></p>\n'%LogFile
     HtmlContent += '<div style="overflow-x:auto;">\n<table>\n'
@@ -119,7 +129,7 @@ def constructMultiBuildHTMLSummary(ProceduresSummary, OutDir=".", LogFile=""):
             if StepId not in AllSteps:
                 AllSteps.append(StepId)
 
-    HtmlContent += "<th>Build</th><th>Context</th>"
+    HtmlContent += "<h3>Summary</h3>\n<th>Build</th><th>Context</th>"
     for Step in AllSteps:
       HtmlContent += "<th>%s - %s</th>"%(Step[0], Step[1])
     HtmlContent += "</tr>\n"
@@ -129,7 +139,7 @@ def constructMultiBuildHTMLSummary(ProceduresSummary, OutDir=".", LogFile=""):
         CurrentCategory = Build["metadata"]["setup"]["temp-dir"].split("/")[-1]
         if CurrentCategory != Category:
             Category = CurrentCategory
-            HtmlContent += '  <tr><td colspan="2" class="subheader">%s</td></tr>\n'%Category#tr></tr>
+            HtmlContent += '  <tr><td colspan="2" class="subheader">%s</td></tr>\n'%Category#tr></tr> 
         HtmlContent += "  <tr>\n    <td>%s</td><td>%s</td>"%(Build["metadata"]["setup"]["build-type"],
                                                              Build["metadata"]["context"])
         for Step in AllSteps:
@@ -155,9 +165,9 @@ def constructMultiBuildHTMLSummary(ProceduresSummary, OutDir=".", LogFile=""):
         HtmlContent += "  <td>%s</td></tr>\n"%ReportTxt
     HtmlContent += "</table>\n</div>"
 
-    HtmlPath = os.path.join(OutDir, "globalreport.html")
+    HtmlPath = os.path.join(OutDir, HtmlFilename)
     f = open(HtmlPath, "w")
     f.write(HtmlContent)
     f.close()
 
-    logging.info("-- file://%s written."%HtmlPath)
+    return HtmlPath

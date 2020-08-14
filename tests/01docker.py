@@ -6,7 +6,7 @@ __license__ = "see LICENSE file"
 
 
 import unittest
-
+import os
 
 from mbm import dockerManagement as DM
 
@@ -35,8 +35,9 @@ class MainTest(unittest.TestCase):
 
     def test_launchInDocker(self):
         
-        Outputs = DM.launchInDocker(DM.getImages(True)[0], "echo TEST")
+        Outputs = DM.launchInDocker(DM.getImages(True)[0], "echo TEST", "mbm", "sharedtestfolder")
         self.assertTrue(b"TEST" in Outputs["OUT"])
+        os.rmdir("./sharedtestfolder/")
 
 
     ####################################################    
@@ -46,6 +47,12 @@ class MainTest(unittest.TestCase):
         
         # DISABLED, probably too heavy for testing purpose without mocking
         DM.generateImage("debian-9-qt5")
+    
+    def tearDownClass():
+        try:
+            os.rmdir("./sharedtestfolder/")
+        except:
+            pass
 
 
 if __name__ == '__main__':

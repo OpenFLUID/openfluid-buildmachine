@@ -71,7 +71,7 @@ class MainTest(unittest.TestCase):
   def test_machineSequence(self):
       
       Parser = BuildMachineParser()
-      Args = vars(Parser.parse_args(['test']))
+      Args = vars(Parser.parse_args(['package', "--localinstall"]))
       FBM.FakeBuildMachine(Args)
 
 
