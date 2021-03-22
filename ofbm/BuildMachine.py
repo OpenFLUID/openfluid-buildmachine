@@ -34,6 +34,7 @@ StepSuccessStrings["P4_Test"] = "Finalizing simulation... [OK]"
 StepFailStrings = dict()
 StepFailStrings["R2_Check"] = "ERROR"
 StepFailStrings["R3_Build"] = "No such file or directory"
+StepFailStrings["P4_Test"] = "... ERROR"
 
 DefaultRepos = dict()  # possibility to set DefaultRepos["foo"] = [urlPortion, Branch] if wanted
 DefaultRepos["ropenfluid_repos"] = ["OpenFLUID/ropenfluid"]
