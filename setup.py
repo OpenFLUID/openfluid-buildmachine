@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 #-*-coding:utf-8-*-
 
+
 from setuptools import setup
 
 def readme():
@@ -18,7 +19,9 @@ setup(name = 'openfluid-buildmachine',
       packages = ['ofbm'],
       entry_points = {
           'console_scripts': [
-              'ofbm = ofbm.__main__:main'
+              'ofbm = ofbm.__main__:main',
+              'mbm = mbm.__main__:main',
+              'openfluid-mbm = mbmRecast.__main__:main'
           ]
       },
       test_suite='tests',

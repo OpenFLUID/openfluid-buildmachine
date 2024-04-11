@@ -1,0 +1,64 @@
+---
+all-contexts: &all-contexts
+  - docker:ofbuild/fedora-28-qt5
+  - docker:ofbuild/ubuntu-19.04-qt5
+
+
+setups:
+  - LOCAL-TEST: &LOCAL-TEST
+      build-type: test
+      build-jobs: 8
+      temp-dir: /tmp/openfluid-build-machine/
+      contexts: 
+        - local
+  
+  - LOCAL-TEST: &LOCAL-PACK
+      build-type: package
+      build-jobs: 10
+      temp-dir: /tmp/openfluid-build-machine/
+      contexts: 
+        - local
+  
+  - MINIMAL-TEST: &MIN-TEST
+      build-type: test
+      temp-dir: /shared/MTEST
+      contexts: 
+        - docker:ofbuild/ubuntu-19.04-qt5
+  
+  - MONO-TEST: &MONO-TEST
+      build-type: test
+      build-jobs: 10
+      temp-dir: /shared/MTEST
+      contexts: 
+        - docker:ofbuild/ubuntu-19.04-qt5
+
+  - FULL-PACK: &FULL-PACK
+      build-type: package
+      temp-dir: /shared/FULLPACKALL
+      run-examples: "*"
+      contexts: *all-contexts
+      build-jobs: 8
+      pyopenfluid-repos: default
+      ropenfluid-repos: default
+      
+  - ALL-TEST: &ALL-TEST
+      build-type: test
+      temp-dir: /shared/MULTIDOCK2
+      contexts: *all-contexts
+      build-jobs: 8
+        
+  - MYREPO-UBUNTU-TEST: &MYREPO-UBUNTU-TEST
+      openfluid-repos: Arthoni/openfluid#develop
+      build-type: test
+      contexts: ofbuild/ubuntu-19.04-qt5
+      build-jobs: 8
+
+
+active-setups:
+- *LOCAL-TEST
+  
+disabled-setups:
+- *FULL-PACK
+- *LOCAL-PACK
+- *ALL-TEST
+...
